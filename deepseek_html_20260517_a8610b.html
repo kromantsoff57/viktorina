@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Викторина: История письменности (ввод ответа)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #D6E8F5 0%, #F5E6D3 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Общие стили экранов */
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 860px;
+    }
+    .screen.active {
+      display: block;
+    }
+
+    /* Приветственный экран */
+    #welcome {
+      background: white;
+      border-radius: 30px;
+      padding: 50px 40px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    #welcome h1 {
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: #F4845F;
+      margin-bottom: 10px;
+    }
+    #welcome p {
+      font-size: 1.2rem;
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .topics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+    .topic-pill {
+      background: #FDDCCC;
+      border: 2px solid #F4845F;
+      border-radius: 16px;
+      padding: 12px 10px;
+      font-weight: 700;
+      color: #3B3B3B;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .topic-pill:hover, .topic-pill.selected {
+      background: #F4845F;
+      color: white;
+      transform: scale(1.05);
+    }
+    .btn-start {
+      background: #F4845F;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 16px 48px;
+      font-size: 1.3rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 5px 20px rgba(244,132,95,0.5);
+    }
+    .btn-start:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(244,132,95,0.6);
+    }
+    .btn-start:disabled {
+      background: #ccc;
+      box-shadow: none;
+      transform: none;
+      cursor: default;
+    }
+
+    /* Игровой экран */
+    #game {
+      background: white;
+      border-radius: 30px;
+      padding: 36px 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .game-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .topic-badge {
+      background: #F4845F;
+      color: white;
+      border-radius: 50px;
+      padding: 8px 22px;
+      font-weight: 900;
+      font-size: 1.15rem;
+    }
+    .progress-info {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #888;
+    }
+    .score-badge {
+      background: #D6E8F5;
+      border-radius: 50px;
+      padding: 8px 20px;
+      font-weight: 900;
+      font-size: 1.05rem;
+      color: #3B3B3B;
+    }
+    .progress-wrap {
+      background: #eee;
+      border-radius: 20px;
+      height: 10px;
+      margin-bottom: 26px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #F4845F, #FFB347);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .question-card {
+      background: #D6E8F5;
+      border-radius: 20px;
+      padding: 28px 30px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+    }
+    .question-number {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #F4845F;
+      margin-right: 18px;
+      flex-shrink: 0;
+      width: 48px;
+      text-align: center;
+    }
+    .question-text {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #3B3B3B;
+      line-height: 1.5;
+    }
+
+    /* Блок правильного ответа (показывается только при ошибке) */
+    .answer-wrap {
+      margin-bottom: 24px;
+    }
+    .answer-card {
+      background: #EAFAF1;
+      border: 2.5px solid #5CB85C;
+      border-radius: 16px;
+      padding: 18px 24px;
+      display: none;
+      animation: popIn 0.3s ease;
+    }
+    .answer-card.visible {
+      display: block;
+    }
+    .answer-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #5CB85C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .answer-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #3B3B3B;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Поле ввода и кнопки */
+    .input-area {
+      margin-bottom: 24px;
+    }
+    .answer-input {
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 1.1rem;
+      font-family: 'Nunito', sans-serif;
+      border: 2px solid #ddd;
+      border-radius: 60px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .answer-input:focus {
+      border-color: #F4845F;
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .btn {
+      border: none;
+      border-radius: 50px;
+      padding: 13px 28px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-family: 'Nunito', sans-serif;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn-check {
+      background: #5B8DEF;
+      color: white;
+      box-shadow: 0 4px 14px rgba(91,141,239,0.4);
+    }
+    .btn-next {
+      background: #5CB85C;
+      color: white;
+      box-shadow: 0 4px 14px rgba(92,184,92,0.4);
+    }
+    .btn-menu {
+      background: #aaa;
+      color: white;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .feedback {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      height: 50px;
+      transition: opacity 0.3s;
+    }
+    .feedback.correct {
+      color: #5CB85C;
+    }
+    .feedback.wrong {
+      color: #D9534F;
+    }
+
+    /* Экран результатов */
+    #results {
+      background: white;
+      border-radius: 30px;
+      padding: 50px 40px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .result-icon {
+      font-size: 5rem;
+      margin-bottom: 16px;
+    }
+    #results h2 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #F4845F;
+      margin-bottom: 10px;
+    }
+    .result-sub {
+      font-size: 1.15rem;
+      color: #666;
+      margin-bottom: 28px;
+    }
+    .result-score-big {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #3B3B3B;
+      margin-bottom: 8px;
+    }
+    .result-topics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 36px;
+      text-align: left;
+    }
+    .result-topic-card {
+      background: #FDDCCC;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .rt-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .rt-score {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #3B3B3B;
+    }
+    .rt-stars {
+      font-size: 1.1rem;
+    }
+    .btn-restart {
+      background: #F4845F;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 16px 48px;
+      font-size: 1.2rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 5px 20px rgba(244,132,95,0.5);
+      transition: transform 0.15s;
+    }
+    .btn-restart:hover {
+      transform: translateY(-3px);
+    }
+
+    @media (max-width: 500px) {
+      #game, #welcome, #results { padding: 26px 18px; }
+      .question-text { font-size: 1.1rem; }
+      #welcome h1 { font-size: 1.9rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="welcome" class="screen active">
+  <h1>📜 Викторина</h1>
+  <p>История письменности на Руси</p>
+  <p style="font-size:1rem;color:#999;margin-bottom:24px;">Выберите темы и нажмите «Старт».</p>
+  <div class="topics-grid" id="topicPills"></div>
+  <button class="btn-start" id="startBtn">🚀 Старт!</button>
+</div>
+
+<div id="game" class="screen">
+  <div class="game-header">
+    <div class="topic-badge" id="topicBadge">Тема</div>
+    <div class="progress-info" id="progressInfo">Вопрос 1 из 6</div>
+    <div class="score-badge">⭐ <span id="scoreDisplay">0</span></div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+
+  <div class="question-card">
+    <div class="question-number" id="qNum">1</div>
+    <div class="question-text" id="qText">Загрузка...</div>
+  </div>
+
+  <div class="answer-wrap">
+    <div class="answer-card" id="answerCard">
+      <div class="answer-label">✅ Правильный ответ</div>
+      <div class="answer-text" id="answerText"></div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="userAnswer" class="answer-input" placeholder="Введите ваш ответ..." autocomplete="off">
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-check" id="btnCheck">📝 Проверить</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-next" id="btnNext" disabled>Следующий вопрос ▶</button>
+    <button class="btn btn-menu" id="btnMenu">◀ Меню</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<div id="results" class="screen">
+  <div class="result-icon" id="resultIcon">🏆</div>
+  <h2 id="resultTitle">Отлично!</h2>
+  <p class="result-sub" id="resultSub">Вот ваши результаты:</p>
+  <div class="result-score-big" id="resultBig"></div>
+  <div class="result-topics" id="resultTopics"></div>
+  <button class="btn-restart" id="btnRestart">🔄 Играть снова</button>
+</div>
+
+<script>
+  // ---------- БАЗА ВОПРОСОВ (с возможными синонимами) ----------
+  const ALL_TOPICS = [
+    { id: 0, title: "Первая азбука", color: "#D6E8F5", questions: [
+      { q: "Как называется азбука, созданная Кириллом и Мефодием?", a: "кириллица", variants: ["кириллица", "азбука кирилла", "славянская азбука"] },
+      { q: "Что раньше означало слово «глаголить»?", a: "говорить", variants: ["говорить", "разговаривать", "произносить"] },
+      { q: "Сколько учеников Кирилла и Мефодия изображено на иконе?", a: "7", variants: ["7", "семь", "семеро"] },
+      { q: "В каком году была создана глаголица?", a: "862", variants: ["862", "862 год"] },
+      { q: "Какого цвета борода Кирилла (младшего)?", a: "рыжая", variants: ["рыжая", "каштановая", "рыжая/каштановая"] },
+      { q: "Из-за чего распространилась письменность на Руси?", a: "принятие христианства", variants: ["принятие христианства", "после принятия христианства", "христианство"] }
+    ]},
+    { id: 1, title: "Типы письма", color: "#FFF3EC", questions: [
+      { q: "Как называется тип письма, который появился в XV веке?", a: "скоропись", variants: ["скоропись"] },
+      { q: "Какой тип письма использовался в качестве украшения?", a: "вязь", variants: ["вязь"] },
+      { q: "Сколько типов письма существовало?", a: "4", variants: ["4", "четыре", "4 типа"] },
+      { q: "Сколько перьев изображено на карточке?", a: "3", variants: ["3", "три"] },
+      { q: "Какой тип письма появился раньше других?", a: "устав", variants: ["устав"] },
+      { q: "Как называлась красивая заглавная буква в начале текста?", a: "буквица", variants: ["буквица", "инициал"] }
+    ]},
+    { id: 2, title: "Берестяные грамоты", color: "#F5E6D3", questions: [
+      { q: "Где было найдено самое большое количество берестяных грамот?", a: "новгород", variants: ["новгород", "в новгороде"] },
+      { q: "Сколько грамот на карточке?", a: "2", variants: ["2", "две", "два"] },
+      { q: "Кто писал берестяные грамоты?", a: "простые люди", variants: ["простые люди", "все", "горожане"] },
+      { q: "Почему грамоты хорошо сохранились?", a: "в земле", variants: ["в земле", "их сразу выбрасывали", "сохранились в земле"] },
+      { q: "Сколько берёз на картинке?", a: "3", variants: ["3", "три"] },
+      { q: "Чем писали на бересте?", a: "писало", variants: ["писало", "острой палочкой", "писалом"] }
+    ]},
+    { id: 3, title: "Первые книги", color: "#D6E8F5", questions: [
+      { q: "Где создавались первые книги?", a: "монастырь", variants: ["монастырь", "в монастырях"] },
+      { q: "Сколько времени могли писаться книги?", a: "5 лет", variants: ["5 лет", "до 5 лет", "5", "пять лет"] },
+      { q: "Откуда появилось выражение «красная строка»?", a: "красные чернила", variants: ["красные чернила", "начало главы красными чернилами"] },
+      { q: "Что делали для экономии материала?", a: "сокращения", variants: ["сокращения", "писали сокращения", "убирали пробелы"] },
+      { q: "Сколько монахов-переписчиков изображено на иконе?", a: "3", variants: ["3", "три"] },
+      { q: "Чем украшали рукописные книги?", a: "миниатюры", variants: ["миниатюры", "миниатюрами, вязью", "орнаментом"] }
+    ]},
+    { id: 4, title: "Первопечатники", color: "#FFF3EC", questions: [
+      { q: "Что держит в руках Иван Фёдоров?", a: "апостол", variants: ["апостол", "книгу апостол"] },
+      { q: "Сколько весил первый на Руси печатный станок?", a: "104", variants: ["104", "104 кг"] },
+      { q: "Когда появилась первая печатная книга на Руси?", a: "1564", variants: ["1564", "1564 год"] },
+      { q: "Как называются буквы в печатном станке?", a: "литеры", variants: ["литеры", "литера"] },
+      { q: "Разворот какой книги изображён на карточке?", a: "апостол", variants: ["апостол"] },
+      { q: "Из какого материала выполнен станок?", a: "дерево", variants: ["дерево", "из дерева", "деревянный"] }
+    ]}
+  ];
+
+  // ---------- СОСТОЯНИЕ ----------
+  let selectedTopicIds = [];
+  let playQueue = [];           // { topicId, qIdx }
+  let currentQueuePos = 0;
+  let totalScore = 0;
+  let topicScores = {};         // id -> { got, total, title }
+  let answered = false;         // был ли дан ответ на текущий вопрос (блокируем повторную проверку)
+
+  // DOM элементы
+  const welcomeScreen = document.getElementById('welcome');
+  const gameScreen = document.getElementById('game');
+  const resultsScreen = document.getElementById('results');
+  const topicPillsDiv = document.getElementById('topicPills');
+  const startBtn = document.getElementById('startBtn');
+  const btnCheck = document.getElementById('btnCheck');
+  const btnNext = document.getElementById('btnNext');
+  const btnMenu = document.getElementById('btnMenu');
+  const btnRestart = document.getElementById('btnRestart');
+  const userAnswerInput = document.getElementById('userAnswer');
+  const answerCard = document.getElementById('answerCard');
+  const answerTextSpan = document.getElementById('answerText');
+  const feedbackDiv = document.getElementById('feedback');
+
+  // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+  function showScreen(screenId) {
+    welcomeScreen.classList.remove('active');
+    gameScreen.classList.remove('active');
+    resultsScreen.classList.remove('active');
+    if (screenId === 'welcome') welcomeScreen.classList.add('active');
+    if (screenId === 'game') gameScreen.classList.add('active');
+    if (screenId === 'results') resultsScreen.classList.add('active');
+  }
+
+  function goMenu() {
+    showScreen('welcome');
+  }
+
+  // Нормализация ответа: нижний регистр, удаляем лишние пробелы, знаки препинания в конце
+  function normalizeAnswer(str) {
+    return str.trim().toLowerCase().replace(/[.!?,;:]$/, '').replace(/\s+/g, ' ');
+  }
+
+  // Проверка ответа с учётом синонимов
+  function isAnswerCorrect(userInput, questionObj) {
+    const normalizedUser = normalizeAnswer(userInput);
+    const mainAnswer = normalizeAnswer(questionObj.a);
+    if (normalizedUser === mainAnswer) return true;
+    if (questionObj.variants) {
+      return questionObj.variants.some(v => normalizeAnswer(v) === normalizedUser);
+    }
+    return false;
+  }
+
+  // Обновить интерфейс вопросом
+  function loadQuestion() {
+    answered = false;
+    const item = playQueue[currentQueuePos];
+    const topic = ALL_TOPICS.find(t => t.id === item.topicId);
+    const qObj = topic.questions[item.qIdx];
+
+    // Шапка
+    document.getElementById('topicBadge').textContent = topic.title;
+    const topicQuestionsCount = topic.questions.length;
+    const currentInTopic = playQueue.filter(p => p.topicId === item.topicId).findIndex(p => p === item) + 1;
+    document.getElementById('progressInfo').textContent = `Вопрос ${currentInTopic} из ${topicQuestionsCount}`;
+    const percent = (currentInTopic / topicQuestionsCount) * 100;
+    document.getElementById('progressBar').style.width = percent + '%';
+    document.getElementById('scoreDisplay').textContent = totalScore;
+    document.getElementById('game').style.background = topic.color || 'white';
+
+    // Вопрос
+    document.getElementById('qNum').textContent = currentInTopic;
+    document.getElementById('qText').textContent = qObj.q;
+
+    // Ответ (скрыт)
+    answerTextSpan.textContent = qObj.a;
+    answerCard.classList.remove('visible');
+
+    // Сброс поля ввода и фидбека
+    userAnswerInput.value = '';
+    feedbackDiv.textContent = '';
+    feedbackDiv.className = 'feedback';
+
+    // Кнопки
+    btnCheck.disabled = false;
+    btnNext.disabled = true;
+    userAnswerInput.disabled = false;
+    userAnswerInput.focus();
+  }
+
+  // Проверка введённого ответа
+  function checkAnswer() {
+    if (answered) {
+      feedbackDiv.textContent = '❗ Вы уже ответили на этот вопрос!';
+      feedbackDiv.className = 'feedback wrong';
+      return;
+    }
+    const userAnswer = userAnswerInput.value;
+    if (!userAnswer.trim()) {
+      feedbackDiv.textContent = '✏️ Введите ответ!';
+      feedbackDiv.className = 'feedback wrong';
+      return;
+    }
+
+    const item = playQueue[currentQueuePos];
+    const topic = ALL_TOPICS.find(t => t.id === item.topicId);
+    const qObj = topic.questions[item.qIdx];
+    const correct = isAnswerCorrect(userAnswer, qObj);
+
+    if (correct) {
+      totalScore++;
+      topicScores[item.topicId].got++;
+      feedbackDiv.textContent = '✅ Правильно! +1 балл';
+      feedbackDiv.className = 'feedback correct';
+    } else {
+      feedbackDiv.textContent = `❌ Неверно. Правильный ответ: ${qObj.a}`;
+      feedbackDiv.className = 'feedback wrong';
+      // Показываем правильный ответ автоматически, чтобы ребёнок запомнил
+      answerCard.classList.add('visible');
+    }
+
+    // Обновляем счёт
+    document.getElementById('scoreDisplay').textContent = totalScore;
+    answered = true;
+    btnCheck.disabled = true;
+    userAnswerInput.disabled = true;
+
+    // Активируем кнопку "Следующий вопрос"
+    const isLast = currentQueuePos >= playQueue.length - 1;
+    btnNext.disabled = false;
+    btnNext.textContent = isLast ? '🏆 Результаты' : 'Следующий вопрос ▶';
+  }
+
+  // Переход к следующему вопросу или результатам
+  function nextQuestion() {
+    if (!answered) {
+      feedbackDiv.textContent = '🔍 Сначала проверьте ответ!';
+      feedbackDiv.className = 'feedback wrong';
+      return;
+    }
+    currentQueuePos++;
+    if (currentQueuePos >= playQueue.length) {
+      showResults();
+    } else {
+      loadQuestion();
+    }
+  }
+
+  // Отображение финальной статистики
+  function showResults() {
+    const totalQuestions = playQueue.length;
+    const percent = Math.round((totalScore / totalQuestions) * 100);
+    let icon = '🏆', title = 'Отлично!', sub = 'Вы настоящий знаток истории письменности!';
+    if (percent >= 80) {
+      icon = '🏆🌟';
+      title = 'Великолепно!';
+    } else if (percent >= 60) {
+      icon = '📚👍';
+      title = 'Хорошо!';
+    } else if (percent >= 40) {
+      icon = '📖';
+      title = 'Неплохо, но есть куда расти';
+    } else {
+      icon = '📜🤔';
+      title = 'Попробуйте ещё раз';
+      sub = 'Изучите материал и возвращайтесь!';
+    }
+    document.getElementById('resultIcon').textContent = icon;
+    document.getElementById('resultTitle').textContent = title;
+    document.getElementById('resultSub').textContent = sub;
+    document.getElementById('resultBig').textContent = `${totalScore} / ${totalQuestions}`;
+
+    const container = document.getElementById('resultTopics');
+    container.innerHTML = '';
+    for (let [id, data] of Object.entries(topicScores)) {
+      const card = document.createElement('div');
+      card.className = 'result-topic-card';
+      card.innerHTML = `
+        <div class="rt-title">${data.title}</div>
+        <div class="rt-score">${data.got} / ${data.total}</div>
+        <div class="rt-stars">${'⭐'.repeat(data.got)}${'☆'.repeat(data.total - data.got)}</div>
+      `;
+      container.appendChild(card);
+    }
+    showScreen('results');
+  }
+
+  // Старт игры: собираем очередь вопросов из выбранных тем
+  function startGame() {
+    if (selectedTopicIds.length === 0) return;
+    playQueue = [];
+    topicScores = {};
+    totalScore = 0;
+    for (let id of selectedTopicIds) {
+      const topic = ALL_TOPICS.find(t => t.id === id);
+      topicScores[id] = { got: 0, total: topic.questions.length, title: topic.title };
+      for (let qIdx = 0; qIdx < topic.questions.length; qIdx++) {
+        playQueue.push({ topicId: id, qIdx });
+      }
+    }
+    currentQueuePos = 0;
+    showScreen('game');
+    loadQuestion();
+  }
+
+  // ---------- ВЫБОР ТЕМ (welcome) ----------
+  function buildTopicPills() {
+    topicPillsDiv.innerHTML = '';
+    selectedTopicIds = [];
+    ALL_TOPICS.forEach(topic => {
+      const pill = document.createElement('div');
+      pill.className = 'topic-pill';
+      pill.textContent = topic.title;
+      pill.dataset.id = topic.id;
+      pill.addEventListener('click', () => {
+        const idx = selectedTopicIds.indexOf(topic.id);
+        if (idx === -1) {
+          selectedTopicIds.push(topic.id);
+          pill.classList.add('selected');
+        } else {
+          selectedTopicIds.splice(idx, 1);
+          pill.classList.remove('selected');
+        }
+        startBtn.disabled = selectedTopicIds.length === 0;
+      });
+      topicPillsDiv.appendChild(pill);
+    });
+    startBtn.disabled = true;
+  }
+
+  // ---------- ПОДКЛЮЧЕНИЕ СОБЫТИЙ ----------
+  startBtn.addEventListener('click', startGame);
+  btnCheck.addEventListener('click', checkAnswer);
+  btnNext.addEventListener('click', nextQuestion);
+  btnMenu.addEventListener('click', goMenu);
+  btnRestart.addEventListener('click', () => {
+    showScreen('welcome');
+  });
+
+  // Нажатие Enter в поле ввода
+  userAnswerInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !btnCheck.disabled) {
+      e.preventDefault();
+      checkAnswer();
+    }
+  });
+
+  // Инициализация при загрузке
+  buildTopicPills();
+</script>
+</body>
+</html>
